@@ -1,35 +1,75 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+import { words } from "./data/words";
+import shuffleArray from "./utils/shuffle";
+
+const green = "#05df7250";
+const red = "#ff646750";
+
+const shuffledWordsArray = shuffleArray(words);
+const shuffleWordsString = shuffledWordsArray.join(" ");
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [text, setText] = useState("");
+  const [wholeText, setWholeText] = useState("");
+  const [currentWord, setCurrentWord] = useState(0);
+
+  const handleChange = (e) => {
+    setText(e.target.value);
+    setWholeText(e.target.value);
+  };
+
+  // useEffect(() => {
+  //   const timerId = setTimeout(() => {
+  //     setText("");
+  //   });
+  //   return () => clearTimeout(timerId);
+  // }, [currentWord]);
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className="topHeading text-center">
+        <h1 className="text-[#fff] mb-[10px]">Welcome to TypeSprint!</h1>
+        <p>Let's see how fast can you type.</p>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
+
+      {/* Text display area */}
+      <div className="paraCard mt-[40px] mb-[20px] py-[5px] px-[10px] rounded-[10px] bg-[#fff2]">
+        {shuffledWordsArray.map((word, i) => {
+          const matchCurrentWord = word.includes(text);
+          return (
+            <span
+            className="pl-[3px] pr-[1px] -mx-[2px] py-[1px] rounded-[5px]"
+              key={`word-${i}`}
+              style={
+                currentWord === i && text.length
+                  ? {
+                      backgroundColor: matchCurrentWord ? green : red,
+                    }
+                  : {}
+              }
+            >
+              {word}{" "}
+            </span>
+          );
+        })}
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+
+      {/* Typing area */}
+      <input
+        className="border border-gray-400 rounded-[5px] w-full text-[25px] py-[2px] px-[6px]"
+        type="text"
+        value={text.trimEnd()}
+        onChange={handleChange}
+        onKeyDown={(e) => {
+          if (e.key === " ") {
+            setText("");
+            setCurrentWord(currentWord + 1);
+          }
+        }}
+      />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
