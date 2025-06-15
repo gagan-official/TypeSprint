@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import { words } from "./data/words";
 import shuffleArray from "./utils/shuffle";
@@ -13,43 +13,43 @@ const shuffleWordsString = shuffledWordsArray.join(" ");
 function App() {
   const [text, setText] = useState("");
   const [wholeText, setWholeText] = useState([]);
-  const [currentWord, setCurrentWord] = useState(0);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [timerStarted, setTimerStarted] = useState(false);
   const [wpmScore, setWpmScore] = useState(0);
-  const minuteTimer = useRef(null);
-  const timerStarted = useRef(false);
+  const timerId = useRef(null);
 
   const handleReset = () => {
+    setTimerStarted(false);
     setText("");
-    setCurrentWord(0);
-    clearTimeout(minuteTimer.current);
-    timerStarted.current = false;
+    setCurrentWordIndex(0);
+    setWholeText([]);
   };
 
   const handleChange = (e) => {
     setText(e.target.value);
   };
 
-  const handleScore = () => {
+  const handleScore = useCallback(() => {
     const correctWords = wholeText.filter((word, i) => {
       return shuffledWordsArray[i] === word;
     });
     setWpmScore(correctWords.length); // Optional: show it
+    handleReset();
     console.log("Correct words count:", correctWords.length);
-  };
+  }, [wholeText]);
+  // Checkpoint ⛳: This is wrong as this handleScore will be recreated that means will hit useffect everytime wholeText is changed.
+  // So have to continue to change the logic from here.
 
-  // useEffect(() => {
-  //   console.log("useeffect hit");
-  //   console.log(wholeText, wholeText.length === 1, minuteTimer.current);
-  //   if (wholeText.length === 1) {
-  //     console.log("useeffect iff hit");
-  //     minuteTimer.current = setTimeout(() => {
-  //       console.log("useeffect setTimeout hit");
-  //       handleScore();
-  //       handleReset();
-  //       console.log("timer hit");
-  //     }, 1000 * 6);
-  //   }
-  // }, [wholeText]);
+  useEffect(() => {
+    if (timerStarted) timerId.current = setTimeout(handleScore, 1000 * 6);
+
+    return () => {
+      if (timerId.current) {
+        clearTimeout(timerId.current);
+        console.log("timer stopped, flushed out");
+      }
+    };
+  }, [timerStarted, handleScore]);
 
   console.log(wholeText);
 
@@ -58,20 +58,24 @@ function App() {
       <div className="topHeading text-center">
         <h1 className="text-[#fff] mb-[10px]">Welcome to TypeSprint!</h1>
         <p>Let's see how fast can you type.</p>
+        <h3>
+          <strong className="font-semibold">WPM Score:</strong> {wpmScore}
+        </h3>
       </div>
 
       {/* Text display area */}
       <div className="paraCard mt-[40px] mb-[20px] py-[5px] px-[10px] rounded-[10px] bg-[#fff2]">
         {shuffledWordsArray.map((word, i) => {
-          const matchCurrentWord = word.includes(text);
+          // const matchcurrentWordIndex = word.includes(text);
           return (
             <span
               className="pl-[3px] pr-[1px] -mx-[2px] py-[1px] rounded-[5px]"
               key={`word-${i}`}
               style={
-                currentWord === i && text.length
+                currentWordIndex === i
                   ? {
-                      backgroundColor: matchCurrentWord ? green : red,
+                      border: "1px solid",
+                      backgroundColor: text.length && word.includes(text) ? green : red,
                     }
                   : {}
               }
@@ -90,20 +94,14 @@ function App() {
           value={text.trimEnd()}
           onChange={handleChange}
           onKeyDown={(e) => {
-            if (!timerStarted.current && e.key.length === 1) {
-              timerStarted.current = true;
-              minuteTimer.current = setTimeout(() => {
-                handleScore();
-                handleReset();
-                setWholeText([]);
-                timerStarted.current = false;
-              }, 1000 * 6);
+            if (!timerStarted && e.key.length === 1) {
+              console.log("if hitted, timer started");
+              setTimerStarted(true);
             }
-
             if (e.key === " ") {
               e.preventDefault();
               setWholeText((prev) => [...prev, text.trim()]);
-              setCurrentWord((prev) => prev + 1);
+              setCurrentWordIndex((prev) => prev + 1);
               setText("");
             }
           }}
@@ -111,7 +109,7 @@ function App() {
         <button
           title="Reset"
           className="bg-blue-500 border border-blue-500 active:scale-95 transition-transform text-[20px] text-[#fff] p-[12px] shrink-0 cursor-pointer rounded-[7px]"
-          onClick={() => (handleReset(), setWholeText([]))}
+          onClick={() => (handleReset(), setWpmScore(0))}
         >
           <GrPowerReset />
         </button>
